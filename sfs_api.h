@@ -1,4 +1,4 @@
-int mksfs(int fresh);
+void mksfs(int fresh);
 void sfs_ls(void);
 int sfs_open(char *name);
 int sfs_close(int fileID);
@@ -9,7 +9,9 @@ int sfs_read(int fileID, char *buf, int length);
 /**
  * Creates the file system.
  */
-void mksfs(int fresh);
+void mksfs(int fresh) {
+
+}
 
 /**
  * Lists files in the root directory.
@@ -56,4 +58,6 @@ int sfs_write(int fileID, char * buf, int length) {
 /**
  * Reads characters from disk into buffer.
  */
-int sfs_read(int fileID, char * buf, int length);
+int sfs_read(int fileID, char * buf, int length) {
+	
+}
