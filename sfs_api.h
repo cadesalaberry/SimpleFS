@@ -1,58 +1,14 @@
 #include "disk_emu.h"
+#include "sfs_header.h"
 
-#define BLOCK_SIZE  256
-#define BLOCK_NUMBER 30
-#define MAX_FILES 20
+int 	i, j, k;
 
-#define FREE -2
-#define TAKEN -3
-
-#define OPEN -4
-#define CLOSE -5
-#define LARGE 35000
-
-#define MAX_FNAME_LENGTH 12
-
-typedef struct FileDescriptorTable {
-	char filename[32];
-	int fat_index;
-	void * writePtr;
-	void * readPtr;
-	int open_file;
-} FileDescriptorTable;
-
-
-typedef struct RootDirectoryTable {
-	char filename[32];
-	size_t size;
-	void * fat_root;
-	time_t created;
-	int flag;
-	int file_ID;
-	int write_memo;
-} RootDirectoryTable;
-
-
-typedef struct FileAllocationTable {
-	size_t nbBlock;
-	void * ptr;
-	size_t remaining_size;
-} FileAllocationTable;
-
-
-///Global variables
-FileDescriptorTable fdt[MAX_FILES];
-RootDirectoryTable rdt[MAX_FILES];
-FileAllocationTable fat[BLOCK_NUMBER];
-void * fbl[BLOCK_NUMBER];
-int i, j, k;
-
-void mksfs(int fresh);
-void sfs_ls(void);
-int sfs_open(char *name);
-int sfs_close(int fileID);
-int sfs_write(int fileID, char *buf, int length);
-int sfs_read(int fileID, char *buf, int length);
+void	mksfs(int fresh);
+void	sfs_ls(void);
+int 	sfs_open(char * name);
+int 	sfs_close(int fileID);
+int 	sfs_write(int fileID, char * buf, int length);
+int 	sfs_read(int fileID, char * buf, int length);
 
 
 /**
@@ -62,42 +18,21 @@ int sfs_read(int fileID, char *buf, int length);
 
  	if(fresh){
 
-        // Initializes root directory table
- 		for(i=0;i<MAX_FILES;i++){
- 			rdt[i].filename[0] = '\0';
- 			rdt[i].size = 0;
- 			rdt[i].created = 0;
-            rdt[i].fat_root = NULL;
-            rdt[i].flag = -1;
-            rdt[i].file_ID = -1;
- 		}
+        // Initializes file descriptor table
+ 		FileDescriptorTable_init();
 
         // Initializes file allocation table
- 		for(j=0;j<BLOCK_NUMBER;j++){
- 			fat[j].nbBlock = j+2;
- 			fat[j].ptr = NULL;
- 			fat[j].remaining_size = BLOCK_SIZE;
- 		}
-
-        // Initializes file descriptor table
- 		for(k=0;k<MAX_FILES;k++){
- 			fdt[k].filename[0] = '\0';
- 			fdt[k].fat_index = -1;
- 			fdt[k].readPtr = 0;
- 			fdt[k].writePtr = NULL;
- 			fdt[k].open_file = CLOSE;
- 		}
+ 		FileAllocationTable_init();
 
         // Makes a new disk
- 		init_fresh_disk("my_disk", BLOCK_SIZE, BLOCK_NUMBER);
-
- 		write_blocks(0, 1, rdt);
+ 		init_fresh_disk("my_disk", BLOCK_SIZE, FAT_SIZE);
+ 		write_blocks(0, 1, fdt);
  		write_blocks(1, 1, fat);
  	}
 
  	else {
- 		init_disk("my_disk", BLOCK_SIZE, BLOCK_NUMBER);
- 		read_blocks(0, 1, &rdt);
+ 		init_disk("my_disk", BLOCK_SIZE, FAT_SIZE);
+ 		read_blocks(0, 1, &fdt);
  		read_blocks(1, 1, &fat);
  	}
  }
@@ -119,6 +54,14 @@ int sfs_read(int fileID, char *buf, int length);
 
 	// Opens a file and returns the index on the file descriptor table.
 	// If file does not exist, create the new file and set size to 0.
+
+	/*Create:
+
+    1. Allocate and initialize an FAT node.
+    2. Write the mapping between the FAT node and file name in the root directory.
+    3. Write this information to disk.
+    4. No disk data block allocated. File size is set to 0.
+	*/
  	return 0;
  }
 
