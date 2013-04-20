@@ -122,6 +122,17 @@ Sadly, I did not have enough time to give to conclude this project. *mkfs*, *ls*
 I tried to keep the api file clean by using a second h file **sfs_util.h** in which I stored sfs related functions.
 
 
+# How to Run
+
+To run the tester, you can just execute the bash file **test.sh**.
+
+	./test.sh
+
+If you have some experience with **gdb**, you can also use the following command to debug the program.
+
+	./test.sh debug
+
+
 # Sample Output
 
 	Compiling...
