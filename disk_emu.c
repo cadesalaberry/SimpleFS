@@ -153,12 +153,13 @@ int write_blocks(int start_address, int nblocks, void *buffer)
     if (start_address + nblocks > MAX_BLOCK)
     {
         printf("out of bound error\n");
+        exit(0);
         return -1;
     }
-
+	
     /*Goto where the data is to be written on the disk*/        
     fseek(fp, start_address * BLOCK_SIZE, SEEK_SET);
-
+	
     /*For every block requested*/        
     for (i = 0; i < nblocks; ++i)
     {

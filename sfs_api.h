@@ -1,96 +1,153 @@
+#ifndef SFS_API_H
+#define SFS_API_H
+
 #include "disk_emu.h"
 #include "sfs_header.h"
 
-int 	i, j, k;
+DirectoryDescriptor root;
+FileAllocationTable fat;
 
-void	mksfs(int fresh);
-void	sfs_ls(void);
-int 	sfs_open(char * name);
-int 	sfs_close(int fileID);
-int 	sfs_write(int fileID, char * buf, int length);
-int 	sfs_read(int fileID, char * buf, int length);
+#include "sfs_util.h"
 
+static int opened_files = 0;
 
 /**
- * Creates the file system.
+ * Creates or open a disk to read and write from.
  */
- void mksfs(int fresh) {
+void mksfs(int fresh) {
 
- 	if(fresh){
+	if (fresh) {
+		init_fresh_disk("disk.sfs", sizeof(DiskBlock), NB_BLOCK);
 
-        // Initializes file descriptor table
- 		FileDescriptorTable_init();
+		FAT_init(&fat);
+		DirectoryDescriptor_init(&root);
 
-        // Initializes file allocation table
- 		FileAllocationTable_init();
+		write_blocks( 0, 1, (void *) &root);
+		write_blocks( 1, 1, (void *) &fat);
 
-        // Makes a new disk
- 		init_fresh_disk("my_disk", BLOCK_SIZE, FAT_SIZE);
- 		write_blocks(0, 1, fdt);
- 		write_blocks(1, 1, fat);
- 	}
+	} else {
 
- 	else {
- 		init_disk("my_disk", BLOCK_SIZE, FAT_SIZE);
- 		read_blocks(0, 1, &fdt);
- 		read_blocks(1, 1, &fat);
- 	}
- }
+		init_disk("disk.sfs", sizeof(DiskBlock), NB_BLOCK);
+		read_blocks( 1, 1, (void *) &fat);
+		read_blocks( 0, 1, (void *) &root);
+	}
+}
 
 /**
- * Lists files in the root directory.
- */ 
- void sfs_ls(void) {
-
-	// List the contents of the directory in details, i.e.,
-	// including the information stored in the file control blocks.
-
- }
-
-/**
- * Opens the given file.
+ * Displays the content of a directory.
+ * PERFECTLY WORKING
  */
- int sfs_open(char * name) {
-
-	// Opens a file and returns the index on the file descriptor table.
-	// If file does not exist, create the new file and set size to 0.
-
-	/*Create:
-
-    1. Allocate and initialize an FAT node.
-    2. Write the mapping between the FAT node and file name in the root directory.
-    3. Write this information to disk.
-    4. No disk data block allocated. File size is set to 0.
-	*/
- 	return 0;
- }
-
-/**
- * Closes the given file.
- */
- int sfs_close(int fileID) {
-
-	// Closes a file, i.e., removes the
-	// entry from the open file descriptor table.
- 	return 0;
- }
-
+void sfs_ls() {
+	int i;
+	printf("\n");
+	for (i = 0; i < MAX_FILE; i++) 
+	{
+		if(root.table[i].size > 0)
+		{
+			int kb = root.table[i].size / 1024;
+			char * tm = ctime(&root.table[i].timestamp);
+			tm[24] = '\0';
+			printf("%25s\t%dKB\t%s\n", tm, kb, root.table[i].filename);
+		}
+	}
+}
 
 /**
- * Writes buffered characters onto disk.
+ * Opens a file with the specified filename.
+ *
+ * PERFECTLY WORKING
  */
- int sfs_write(int fileID, char * buf, int length) {
+int sfs_open(char * name) {
 
-	// Writes length bytes of buffered data in buf onto the open file,
-	// starting from the current file pointer.
-	// This in effect increases the size of the file by “length” bytes.
- 	return 0;
- }
+	int fileID = getIndexOfFileInDirectory(name, &root);
+	if (fileID != -1) {
+		return fileID;
+	}
+
+	//gets the next free fileDescriptor
+	fileID = opened_files++;
+	FileDescriptor_createFile(name, &(root.table[fileID]));
+
+	// Assigns a free block to the file, and set it to end of file
+	root.table[root.count].fat_index = FAT_getFreeNode(&fat);
+	fat.table[fat.count].next = EOF;
+
+	write_blocks( 0, 1, (void *) &root);
+	write_blocks( 1, 1, (void *) &fat);
+
+	return fileID;
+
+}
 
 /**
- * Reads characters from disk into buffer.
+ * Closes the specified file if it is found.
+ *
+ * PERFECTLY WORKING
  */
- int sfs_read(int fileID, char * buf, int length) {
+int sfs_close(int fileID) {
 
- 	return 0;
- }
+	if (opened_files <= fileID) {
+		fprintf(stderr, "Error: File #%d does not exist.", fileID);
+		return -1;
+	}
+	
+	root.table[fileID].fas.opened = 0;
+	opened_files--;
+	return 0;
+}
+
+/**
+ * This function is not working properly.
+ */
+int sfs_write(int fileID, char * buf, int length) {
+
+	if (opened_files <= fileID) {
+		fprintf(stderr, "Error: File #%d does not exist.\n", fileID);
+		return 0;
+	}
+	
+	int i, addr = 2;
+	for (i = 0; i < length; i++) {
+
+		//addr = FileDescriptor_getNextWritable(&(root.table[fileID]), &fat);
+
+		// Checks if the address is valid.
+		if (addr != -1) {
+			
+			write_blocks( addr, 1, (void *) &buf[i]);
+			root.table[fileID].size++;
+
+		} else {
+
+			fprintf(stderr, "Error: Disk is full.\n");
+			break;
+		}
+	}
+	/**VirtualDisk_write(fileID, 1, (void *) &buf[i]);
+	if (strcmp(buf, vd[fileID]) != 0) {
+		printf("Error:\nWritting: %s\n", buf);
+		printf("Written: %s\n", vd[fileID]);
+	}*/
+	write_blocks( 0, 1, (void *) &root);
+	write_blocks( 1, 1, (void *) &fat);
+
+	return root.table[fileID].size;
+}
+
+/**
+ * Most of the work is done in the util header file.
+ * PERFECTLY WORKING WITH GOOD WRITE FUNCTION
+ */
+int sfs_read(int fileID, char * buf, int length) {
+
+	if (opened_files <= fileID && root.table[fileID].fas.opened == 0 ) {
+		fprintf(stderr, "No such file %d is opened\n", fileID);
+		return 0;
+	}
+
+	buf = FAT_getPartFile(root.table[fileID], fat, length);
+
+	return EOF;
+}
+
+#endif

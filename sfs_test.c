@@ -149,7 +149,7 @@ main(int argc, char **argv)
             sfs_read(fds[i], buffer, chunksize);
             for (k = 0; k < chunksize; k++) {
                 if (buffer[k] != (char)(j+k)) {
-                    fprintf(stderr, "ERROR: data error at offset %d in file %s (%x,%x)\n",
+                    fprintf(stderr, "ERROR: data error at offset %d in file %s (%i,%i)\n",
                             j+k, names[i], buffer[k], (char)(j+k));
                     error_count++;
                     break;
@@ -160,5 +160,10 @@ main(int argc, char **argv)
     }
 
     fprintf(stderr, "Test program exiting with %d errors\n", error_count);
+
+    /**for (i = 0; i < MAX_FILE; i++) {
+        char * file = FileAllocationTable_getFullFile(root.table[i], fat);
+        printf("%s\n", file);
+    }**/
     return (error_count);
 }

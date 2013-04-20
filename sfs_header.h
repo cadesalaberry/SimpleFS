@@ -1,68 +1,86 @@
-#define BLOCK_SIZE  256
-#define FAT_SIZE 30
-#define FDT_SIZE 20
 
-#define FILENAME_LENGTH 64
+#ifndef min
+	#define min( a, b ) ( ((a) < (b)) ? (a) : (b) )
+#endif
+
+#ifndef SFS_API_HEADER
+#define SFS_API_HEADER
+
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+
+
+#define NB_BLOCK 4096
+#define MAX_DISK NB_BLOCK
+#define FAT_SIZE NB_BLOCK
+
+#define NB_FILES 512
+#define MAX_FILE NB_FILES
+
+#define EMPTY    -69
+
+typedef struct FileAccessStatus {
+
+    int opened;
+    int wr_ptr;
+    int rd_ptr;
+
+} FileAccessStatus;
 
 typedef struct FileDescriptor {
-	int 	id;
-	char	name[FILENAME_LENGTH];
-	int 	FATindex;
-	int 	wPtr;
-	int 	rPtr;
+
+    char                filename[32];
+    int                 fat_index;
+    time_t              timestamp;
+    int                 size;
+	FileAccessStatus    fas;
+
 } FileDescriptor;
 
-typedef struct FileAllocation {
-	int 	id;
-	int 	nxt;
-	int 	index;
-} FileAllocation;
+typedef struct DirectoryDescriptor {
 
-///Global variables
-FileDescriptor	fdt[FDT_SIZE];
-FileAllocation	fat[FAT_SIZE];
+    FileDescriptor table[MAX_FILE];
+    int count;
 
-int fatID = 0, fdtID = 0;
+} DirectoryDescriptor;
 
-void FileAllocationTable_init() {
+typedef struct fat_node {
 
-	for (fatID = 0; fatID < FAT_SIZE; fatID++) {
+    size_t db_index;
+    int next;
+    int free;
 
-		fat[fatID].id 		= fatID;
-		fat[fatID].nxt		= -1;
-		fat[fatID].index	= -1;
-	}
-}
+} fat_node;
 
-int FileAllocationTable_get_free() {
+typedef struct FileAllocationTable {
 
-	for (fatID = 0; fatID < FAT_SIZE; fatID++) {
+    fat_node table[MAX_DISK];
+    int count;
 
-		if (fat[fatID].index == -1) {
-			return fatID;
-		}
-	}
-	return -1;
-}
+} FileAllocationTable;
 
-void FileDescriptorTable_init() {
+typedef struct freeblocklist {
 
-	for(fdtID = 0; fdtID < FDT_SIZE; fdtID++) {
-		fdt[fdtID].id 		= fdtID;
-		fdt[fdtID].name[0] 	= '\0';
-		fdt[fdtID].wPtr 	= -1;
-		fdt[fdtID].rPtr 	= -1;
-		fdt[fdtID].FATindex = -1;
-	}
-}
+    int list[MAX_DISK];
 
-int FileDescriptorTable_get_free() {
+} freeblocklist;
 
-	for (fdtID = 0; fdtID < FDT_SIZE; fdtID++) {
+typedef union DiskBlock {
+    DirectoryDescriptor dd;
+    FileAllocationTable fat;
+    freeblocklist fbl;
+} DiskBlock;
 
-		if (fdt[fdtID].FATindex == -1) {
-			return fdtID;
-		}
-	}
-	return -1;
-}
+void mksfs(int fresh);
+void sfs_ls();
+int sfs_open(char * name);
+int sfs_close(int fileID);
+int sfs_write(int fileID, char * buf, int length);
+int sfs_read(int fileID, char * buf, int length);
+
+#endif
