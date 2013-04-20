@@ -1,3 +1,5 @@
+**Notes on the implementation at the end of this file**
+
 Simple File System
 ======================	
 
@@ -112,4 +114,50 @@ To grow a file:
 * 4. Flush all modifications to disk.
 * 5. Note that all writes to disk are at block sizes. If you are writing few bytes into a file, this might actually end up writing a block to next. So if you are writing to an existing file, it is important you read the last block and set the write pointer to the end of file. The bytes you want to write goes to the end of the previous bytes that are already part of the file. After you have written the bytes, you flush the block to the disk.
 
+
+# Notes On My Implementation
+
+Sadly, I did not have enough time to give to conclude this project. *mkfs*, *ls*, *open* and *close* are fully implemented, *read* is close to done, but *write* is giving unexpected results. I always end up with out of bound errors.
+
+I tried to keep the api file clean by using a second h file **sfs_util.h** in which I stored sfs related functions.
+
+
+# Sample Output
+
+	Compiling...
+	
+	Running...
+	Five files created with zero length:
+
+
+	Error: File #3 does not exist.Error: File #4 does not exist.
+	 Fri Apr 19 23:08:32 2013	18KB	SYPJTVDN.RIC
+	 Fri Apr 19 23:08:32 2013	27KB	XQRCEOTI.EZO
+	 Fri Apr 19 23:08:32 2013	14KB	BUXKGVQA.VIK
+	 Fri Apr 19 23:08:32 2013	29KB	DPGWZIXX.AQB
+	 Fri Apr 19 23:08:32 2013	28KB	FUPJWDFZ.YDL
+	Reopened the files again.. the read/write pointers should be set to front
+	out of bound error
+	ERROR: data error at offset 0 in file SYPJTVDN.RIC (-1,0)
+	out of bound error
+	ERROR: data error at offset 1611 in file SYPJTVDN.RIC (-1,75)
+	out of bound error
+	ERROR: data error at offset 5513 in file SYPJTVDN.RIC (0,-119)
+	out of bound error
+	ERROR: data error at offset 15413 in file SYPJTVDN.RIC (120,53)
+	out of bound error
+	ERROR: data error at offset 17262 in file SYPJTVDN.RIC (-16,110)
+	out of bound error
+	ERROR: data error at offset 18420 in file SYPJTVDN.RIC (-16,-12)
+	out of bound error
+	ERROR: data error at offset 18896 in file SYPJTVDN.RIC (48,-48)
+	out of bound error
+	ERROR: data error at offset 18909 in file SYPJTVDN.RIC (112,-35)
+	out of bound error
+	ERROR: data error at offset 18917 in file SYPJTVDN.RIC (0,-27)
+	out of bound error
+	ERROR: data error at offset 0 in file XQRCEOTI.EZO (-40,0)
+	out of bound error
+	ERROR: data error at offset 8434 in file XQRCEOTI.EZO (0,-14)
+	./test.sh: line 15: 21451 Segmentation fault      ./$P
 

@@ -2,7 +2,7 @@
 #define SFS_API_UTIL
 
 
-char vd[200][50000];
+char vd[100][30000];
 int fatID = 0;
 
 void FAT_init(FileAllocationTable * fat) {
